@@ -5,7 +5,7 @@ import cors from 'cors'
 const app = express();
 app.use(express.json());
 app.use(cors({
-  methods: ['POST', 'DELETE', 'UPDATE', 'PUT', 'PATCH'],
+  methods: ['GET', 'POST', 'DELETE', 'UPDATE', 'PUT', 'PATCH'],
 }));
 
 
@@ -20,9 +20,11 @@ app.listen(PORT, () => {
 
 type BookType = {
   id: number;
-  title: string;
-  author: string;
+  title: string | null;
+  author: string | null;
 }
+type RequestPostPutPatchType = Partial<BookType>
+
 let numberId = 0
 
 let books: BookType[] = [
@@ -31,11 +33,6 @@ let books: BookType[] = [
   {id: numberId++, title: 'Preparation', author: 'Jess'}
 ]
 
-type RequestPostPutPatchType = {
-  title?: string
-  author?: string
-  id?: string
-}
 
 app.get('/books', (req, res) => {
   res.status(200).json({
@@ -43,11 +40,26 @@ app.get('/books', (req, res) => {
   });
 })
 
+app.get('/books/:id', (req, res) => {
+  const {id} = req.params;
+  const book = books.find((book) => book.id === +id);
+  if (book) {
+    res.status(200).json({
+      book
+    });
+  } else {
+    res.status(404).json({
+      error: 'Book not found',
+    });
+  }
+})
+
 app.post('/books', (req: Request<{}, {}, RequestPostPutPatchType>, res) => {
   const requestBody = req.body
-
-  if (requestBody.title && requestBody.author) {
-    const newBook: BookType = {title: requestBody.title, author: requestBody.author, id: numberId++}
+  const {title, author} = requestBody
+  // Но тогда я разрешаю создавать объект с title: null , author: null ?
+  if ((requestBody.hasOwnProperty('title') && title !== undefined) && (requestBody.hasOwnProperty('author') && author !== undefined)) {
+    const newBook = {title, author, id: numberId++}
     books.push(newBook)
     res.status(201).json({
       book: newBook
@@ -67,29 +79,31 @@ app.put('/books/:id', (req: Request<{ id: string }, {}, RequestPostPutPatchType>
   const bookIndex = books.findIndex((book) => book.id === +id);
 
   if (bookIndex !== -1) {
-    if (title) {
+    if (requestBody.hasOwnProperty('title') && title !== undefined) {
       books[bookIndex].title = title;
     }
-    if (author) {
+    if (requestBody.hasOwnProperty('author') && author !== undefined) {
       books[bookIndex].author = author;
     }
 
     res.status(200).json({
       book: books[bookIndex],
     });
+    return
   } else {
-    if (title && author) {
-      const newBook: BookType = {title, author, id: numberId++};
+    if ((requestBody.hasOwnProperty('title') && title !== undefined) && (requestBody.hasOwnProperty('author') && author !== undefined)) {
+      const newBook: BookType = {id: numberId++, title, author};
       books.push(newBook);
       res.status(201).json({
         book: newBook,
       });
-    } else {
-      res.status(404).json({
-        error: 'Book not found',
-      });
+      return
     }
   }
+  res.status(404).json({
+    error: 'Book not found',
+  });
+
 });
 app.patch('/books/:id', (req: Request<{ id: string }, {}, RequestPostPutPatchType>, res) => {
   const {id} = req.params;
@@ -114,7 +128,6 @@ app.patch('/books/:id', (req: Request<{ id: string }, {}, RequestPostPutPatchTyp
       error: 'Book not found',
     });
   }
-
 })
 app.delete('/books', (req: Request, res: Response) => {
   const {id} = req.body

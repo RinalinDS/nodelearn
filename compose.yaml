@@ -1,0 +1,21 @@
+version: '3'
+
+networks:
+  node-network:
+
+services:
+  test-app:
+    build: .
+    restart: always
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    networks:
+      - node-network
+
+  mongodb:
+    image: mongo:latest
+    restart: always
+    networks:
+      - node-network

@@ -11,6 +11,7 @@ services:
       - "5000:5000"
     depends_on:
       - mongodb
+      - postgres
     networks:
       - node-network
 
@@ -19,3 +20,17 @@ services:
     restart: always
     networks:
       - node-network
+    ports:
+      - "27017:27017"
+
+  postgres:
+    image: postgres:latest
+    restart: always
+    networks:
+      - node-network
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: booksDB
